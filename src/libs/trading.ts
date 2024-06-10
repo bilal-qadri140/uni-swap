@@ -29,6 +29,7 @@ import {
   getProvider,
   getWalletAddress,
   sendTransaction,
+  // sendTransactionViaWallet,
   TransactionState,
 } from './providers'
 import { fromReadableAmount } from './utils'
@@ -38,8 +39,6 @@ export type TokenTrade = Trade<Token, Token, TradeType>
 // Trading Functions
 
 export async function createTrade(): Promise<TokenTrade> {
-
-
   const poolInfo = await getPoolInfo()
 
   const pool = new Pool(
@@ -78,9 +77,6 @@ export async function createTrade(): Promise<TokenTrade> {
   return uncheckedTrade
 }
 
-
-
-
 export async function executeTrade(
   trade: TokenTrade
 ): Promise<TransactionState> {
@@ -92,7 +88,8 @@ export async function executeTrade(
   }
 
   // Give approval to the router to spend the token
-  const tokenApproval = await getTokenTransferApproval(CurrentConfig.tokens.in)
+  const tokenApproval = await getTokenTransferApproval(CurrentConfig.tokens.in) // working fine
+  console.log("Token approval, ", tokenApproval);
 
   // Fail if transfer approvals do not go through
   if (tokenApproval !== TransactionState.Sent) {
@@ -106,17 +103,22 @@ export async function executeTrade(
   }
 
   const methodParameters = SwapRouter.swapCallParameters([trade], options)
+  // console.log("Method param: ", methodParameters);
 
   const tx = {
     data: methodParameters.calldata,
-    to: SWAP_ROUTER_ADDRESS,
+    to: walletAddress,
     value: methodParameters.value,
     from: walletAddress,
     maxFeePerGas: MAX_FEE_PER_GAS,
     maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
   }
 
-  const res = await sendTransaction(tx)
+  console.log("TX: ",tx);
+  
+  const res = await sendTransaction(tx) // issue here
+
+  console.log("Res of transaction is: ", res);
 
   return res
 }

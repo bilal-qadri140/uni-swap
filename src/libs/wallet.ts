@@ -15,24 +15,33 @@ import {
 import { getProvider, getWalletAddress, sendTransaction } from './providers'
 import { toReadableAmount } from './utils'
 
+interface currency2{
+  isNative: boolean,
+  address:string
+}
+
 export async function getCurrencyBalance(
   provider: providers.Provider,
   address: string,
-  currency: Currency
+  // isNative: boolean,
+  currencyAddress: Currency
 ): Promise<string> {
   // Handle ETH directly
-  if (currency.isNative) {
+  if (currencyAddress.isNative) {
     return ethers.utils.formatEther(await provider.getBalance(address))
   }
+console.log("hi");
 
   // Get currency otherwise
+  
   const ERC20Contract = new ethers.Contract(
-    currency.address,
+    currencyAddress.address,
     ERC20_ABI,
     provider
   )
   const balance: number = await ERC20Contract.balanceOf(address)
   const decimals: number = await ERC20Contract.decimals()
+// console.log(balance);
 
   // Format with proper units (approximate)
   return toReadableAmount(balance, decimals)
@@ -86,6 +95,7 @@ export async function unwrapETH(eth: number) {
         .mul(JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(18)).toString())
         .toString(),
     ]),
+
     from: address,
     to: WETH_CONTRACT_ADDRESS,
     maxFeePerGas: MAX_FEE_PER_GAS,

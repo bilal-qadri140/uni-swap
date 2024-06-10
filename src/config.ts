@@ -15,7 +15,8 @@ export interface ExampleConfig {
     env: Environment
     rpc: {
         local: string
-        mainnet: string
+        // mainnet: string
+        // testnet:string
     }
     wallet: {
         address: string
@@ -35,12 +36,21 @@ export const CurrentConfig: ExampleConfig = {
     env: Environment.LOCAL,
     rpc: {
         local: 'http://localhost:8545',
-        mainnet: 'https://mainnet.infura.io/v3/9130d8a3ddeb46578a52fe60ddaeddb4',
+        // mainnet: 'https://mainnet.infura.io/v3/9130d8a3ddeb46578a52fe60ddaeddb4',
+        // testnet:'https://sepolia.infura.io/v3/9130d8a3ddeb46578a52fe60ddaeddb4'
     },
     wallet: {
-        address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
-        privateKey:
-            '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+        // address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+        // privateKey:'0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+        address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+        privateKey:'0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+
+        // Talha's testnet wallet
+        // address: '0x98110fa534c7e3d4339ff7bd0b1c58416afc4465',
+        // privateKey: "93d9aaeeea0051b5c77cb77ba3e7b56b0776a931ff3c1005575429160ee0d1e6",
+
+        // address: '0xe7e9ae45739c3b145f1dd6a6a4fc1a7bf7004e6c',
+        // privateKey: "5bd9b08c1e3826fbc80f3dcde0abfcc9037eaca7915e01c0b23efdfde59d188a"
     },
     tokens: {
         in: WETH_TOKEN,

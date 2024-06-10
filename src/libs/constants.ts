@@ -21,7 +21,6 @@ export const WETH_TOKEN = new Token(
   'WETH',
   'Wrapped Ether'
 )
-// console.log('Token is: ', WETH_TOKEN) 
 
 export const USDC_TOKEN = new Token(
   SupportedChainId.MAINNET,
@@ -57,6 +56,6 @@ export const WETH_ABI = [
 
 // Transactions
 
-export const MAX_FEE_PER_GAS = 100000000000
-export const MAX_PRIORITY_FEE_PER_GAS = 100000000000
+export const MAX_FEE_PER_GAS = 1000000000000
+export const MAX_PRIORITY_FEE_PER_GAS = 1000000000000
 export const TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER = 2000

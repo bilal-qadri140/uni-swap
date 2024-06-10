@@ -1,11 +1,9 @@
 import { Hono } from 'hono'
 import {
-  getProvider,
-  getWalletAddress,
-  TransactionState,
+  getProvider
 } from './libs/providers'
-import { createTrade, executeTrade, TokenTrade } from './libs/trading'
-import { getCurrencyBalance, wrapETH } from './libs/wallet'
+import { createTrade, executeTrade } from './libs/trading'
+import { getCurrencyBalance } from './libs/wallet'
 import { CurrentConfig } from './config'
 import { serve } from '@hono/node-server'
 
@@ -13,53 +11,33 @@ const app = new Hono()
 
 app.get('/', (c) => c.text('Hello, Hono.js!'))
 
-app.get('/connect-wallet', async (c) => {
-  try {
-    // const result = await connectBrowserExtensionWallet()
-    // return c.json({ success: result })
-  } catch (error) {
-    return c.json({ error }, 500)
-  }
-})
 
-app.get('/balances', async (c) => {
+app.post('/balances', async (c) => {
+  const { walletAddress } = await c.req.json()
   const provider = getProvider()
-  const address = getWalletAddress()
+  const address = walletAddress
   if (!address || !provider) {
     return c.json({ error: 'Wallet not connected or provider not available' }, 400)
   }
 
-  const tokenInBalance = await getCurrencyBalance(provider, address, CurrentConfig.tokens.in)
-  const tokenOutBalance = await getCurrencyBalance(provider, address, CurrentConfig.tokens.out)
+  const tokenOutBalance = await getCurrencyBalance(provider, address, CurrentConfig.tokens.in)
 
-  return c.json({ tokenInBalance, tokenOutBalance })
+  return c.json({ "Total balance is: ": tokenOutBalance })
 })
-
-
-
-app.post('/create-trade', async (c) => {
-  const {tokenIn, tokenOut} = await c.req.json()
-  const trade = await createTrade()
-  return c.json(trade.outputAmount.currency.address)
-})
-
 
 app.post('/execute-trade', async (c) => {
-  const trade: TokenTrade = await c.req.json()
+
+  const { tokenIn, tokenOut } = await c.req.json()
+
+  if (!tokenIn || !tokenOut) {
+    throw new Error('Invalid token symbol');
+  }
+
+  const trade = await createTrade() // working fine
+
   const txState = await executeTrade(trade)
   return c.json({ txState })
-})
 
-app.post('/wrap-eth', async (c) => {
-  const { amount } = await c.req.json()
-  const result = await wrapETH(amount)
-  return c.json({ result })
-})
-
-app.get('/block-number', async (c) => {
-  const provider = getProvider()
-  const blockNumber = await provider?.getBlockNumber()
-  return c.json({ blockNumber })
 })
 
 serve(app)
