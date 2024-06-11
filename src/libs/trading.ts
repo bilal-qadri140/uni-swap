@@ -13,7 +13,7 @@ import {
   SwapRouter,
   Trade,
 } from '@uniswap/v3-sdk'
-import { ethers } from 'ethers'
+import { Wallet, ethers } from 'ethers'
 import JSBI from 'jsbi'
 
 import { CurrentConfig } from '../config'
@@ -26,10 +26,7 @@ import {
 import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from './constants'
 import { getPoolInfo } from './pool'
 import {
-  getProvider,
-  getWalletAddress,
   sendTransaction,
-  // sendTransactionViaWallet,
   TransactionState,
 } from './providers'
 import { fromReadableAmount } from './utils'
@@ -38,12 +35,12 @@ export type TokenTrade = Trade<Token, Token, TradeType>
 
 // Trading Functions
 
-export async function createTrade(): Promise<TokenTrade> {
-  const poolInfo = await getPoolInfo()
+export async function createTrade(wallet:ethers.Wallet,tokenIn: Token, tokenOut: Token, amount: number): Promise<TokenTrade> {
+  const poolInfo = await getPoolInfo(wallet,tokenIn, tokenOut)
 
   const pool = new Pool(
-    CurrentConfig.tokens.in,
-    CurrentConfig.tokens.out,
+    tokenIn,
+    tokenOut,
     CurrentConfig.tokens.poolFee,
     poolInfo.sqrtPriceX96.toString(),
     poolInfo.liquidity.toString(),
@@ -52,23 +49,23 @@ export async function createTrade(): Promise<TokenTrade> {
 
   const swapRoute = new Route(
     [pool],
-    CurrentConfig.tokens.in,
-    CurrentConfig.tokens.out
+    tokenIn,
+    tokenOut
   )
 
-  const amountOut = await getOutputQuote(swapRoute)
+  const amountOut = await getOutputQuote(wallet,swapRoute, tokenIn, tokenOut, amount)
 
   const uncheckedTrade = Trade.createUncheckedTrade({
     route: swapRoute,
     inputAmount: CurrencyAmount.fromRawAmount(
-      CurrentConfig.tokens.in,
+      tokenIn,
       fromReadableAmount(
-        CurrentConfig.tokens.amountIn,
-        CurrentConfig.tokens.in.decimals
+        amount,
+        tokenIn.decimals
       ).toString()
     ),
     outputAmount: CurrencyAmount.fromRawAmount(
-      CurrentConfig.tokens.out,
+      tokenOut,
       JSBI.BigInt(amountOut)
     ),
     tradeType: TradeType.EXACT_INPUT,
@@ -78,17 +75,23 @@ export async function createTrade(): Promise<TokenTrade> {
 }
 
 export async function executeTrade(
-  trade: TokenTrade
+  wallet: ethers.Wallet,
+  trade: TokenTrade,
+  walletTo: string,
+  walletFrom: string,
+  tokenIn: Token
 ): Promise<TransactionState> {
-  const walletAddress = getWalletAddress()
-  const provider = getProvider()
+  // const walletAddress = walletFrom
+  // const provider = getProvider()
 
-  if (!walletAddress || !provider) {
+  const provider = wallet.provider
+
+  if (!walletFrom || !provider) {
     throw new Error('Cannot execute a trade without a connected wallet')
   }
 
   // Give approval to the router to spend the token
-  const tokenApproval = await getTokenTransferApproval(CurrentConfig.tokens.in) // working fine
+  const tokenApproval = await getTokenTransferApproval(wallet,tokenIn, walletFrom) // working fine
   console.log("Token approval, ", tokenApproval);
 
   // Fail if transfer approvals do not go through
@@ -99,7 +102,7 @@ export async function executeTrade(
   const options: SwapOptions = {
     slippageTolerance: new Percent(50, 10_000), // 50 bips, or 0.50%
     deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes from the current Unix time
-    recipient: walletAddress,
+    recipient: walletFrom,
   }
 
   const methodParameters = SwapRouter.swapCallParameters([trade], options)
@@ -107,16 +110,16 @@ export async function executeTrade(
 
   const tx = {
     data: methodParameters.calldata,
-    to: walletAddress,
+    to: walletTo,
     value: methodParameters.value,
-    from: walletAddress,
+    from: walletFrom,
     maxFeePerGas: MAX_FEE_PER_GAS,
     maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
   }
 
-  console.log("TX: ",tx);
-  
-  const res = await sendTransaction(tx) // issue here
+  console.log("TX: ", tx);
+
+  const res = await sendTransaction(wallet,tx) // issue here
 
   console.log("Res of transaction is: ", res);
 
@@ -125,8 +128,8 @@ export async function executeTrade(
 
 // Helper Quoting and Pool Functions
 
-async function getOutputQuote(route: Route<Currency, Currency>) {
-  const provider = getProvider()
+async function getOutputQuote(wallet:ethers.Wallet,route: Route<Currency, Currency>, tokenIn: Token, tokenOut: Token, amount: number) {
+  const provider = wallet.provider
 
   if (!provider) {
     throw new Error('Provider required to get pool state')
@@ -135,10 +138,10 @@ async function getOutputQuote(route: Route<Currency, Currency>) {
   const { calldata } = await SwapQuoter.quoteCallParameters(
     route,
     CurrencyAmount.fromRawAmount(
-      CurrentConfig.tokens.in,
+      tokenIn,
       fromReadableAmount(
-        CurrentConfig.tokens.amountIn,
-        CurrentConfig.tokens.in.decimals
+        amount,
+        tokenIn.decimals
       ).toString()
     ),
     TradeType.EXACT_INPUT,
@@ -156,10 +159,12 @@ async function getOutputQuote(route: Route<Currency, Currency>) {
 }
 
 export async function getTokenTransferApproval(
-  token: Token
+  wallet:ethers.Wallet,
+  token: Token,
+  walletAddress: string
 ): Promise<TransactionState> {
-  const provider = getProvider()
-  const address = getWalletAddress()
+  const provider = wallet.provider
+  const address = walletAddress
   if (!provider || !address) {
     console.log('No Provider Found')
     return TransactionState.Failed
@@ -180,7 +185,7 @@ export async function getTokenTransferApproval(
       ).toString()
     )
 
-    return sendTransaction({
+    return sendTransaction(wallet,{
       ...transaction,
       from: address,
     })

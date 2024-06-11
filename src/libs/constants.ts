@@ -53,9 +53,28 @@ export const WETH_ABI = [
   // Unwrap ETH
   'function withdraw(uint wad) public',
 ]
+export const USDC_ABI = [
+  // Transfer function
+  'function transfer(address to, uint256 value) returns (bool)',
+
+  // Approve function
+  'function approve(address spender, uint256 value) returns (bool)',
+
+  // TransferFrom function
+  'function transferFrom(address from, address to, uint256 value) returns (bool)',
+
+  // BalanceOf function
+  'function balanceOf(address owner) view returns (uint256)',
+
+  // Decimals function
+  'function decimals() view returns (uint8)',
+
+  // Allowance function
+  'function allowance(address owner, address spender) view returns (uint256)',
+];
 
 // Transactions
 
-export const MAX_FEE_PER_GAS = 1000000000000
-export const MAX_PRIORITY_FEE_PER_GAS = 1000000000000
+export const MAX_FEE_PER_GAS = 10000000000
+export const MAX_PRIORITY_FEE_PER_GAS = 10000000000
 export const TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER = 2000
